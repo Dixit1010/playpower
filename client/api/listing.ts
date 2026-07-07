@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getMongoClient } from './_lib/mongo'
-import fixture from './_lib/fixture.json'
+import fixture from './_lib/fixture'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!process.env.MONGO_URI) {
