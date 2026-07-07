@@ -3,6 +3,12 @@ import { getMongoClient } from './_lib/mongo'
 import fixture from './_lib/fixture.json'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!process.env.MONGO_URI) {
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate')
+    res.status(200).json({ _id: 'static-fixture', ...fixture })
+    return
+  }
+
   try {
     const client = await getMongoClient()
     const collection = client.db().collection('listings')

@@ -121,13 +121,13 @@ The reference site sits behind bot-protection and rate-limits scripted requests 
 
 One Vercel project serves both the static frontend and the API (as a serverless function) from the same domain — no separate backend host.
 
-1. **MongoDB Atlas** (the one piece Vercel can't host): create a free-tier cluster at mongodb.com/atlas, create a database user, and copy the connection string (`mongodb+srv://...`). Network access: allow `0.0.0.0/0` (Vercel functions have no fixed IP) — Atlas's free tier makes this the standard setup, not a security downgrade for this project.
-2. **Import the repo in Vercel**: New Project → import `Dixit1010/playpower` (must be a private repo — see the assignment's instructions).
-3. **Set Root Directory to `client`** in the project's settings — this is what makes Vercel pick up both the Vite static build and the `client/api/` serverless function together.
-4. **Environment variable**: add `MONGO_URI` (the Atlas connection string from step 1) in Project Settings → Environment Variables.
-5. **Deploy.** Framework preset should auto-detect as Vite; build command/output are already pinned in [client/vercel.json](client/vercel.json).
+**`MONGO_URI` is optional.** If it's unset, [client/api/listing.ts](client/api/listing.ts) serves the static fixture directly — no database needed at all, which is enough for a showcase deploy. Set it later (no code changes) to switch to a real, persisted MongoDB Atlas database.
 
-No manual seed step needed — the first request to `/api/listing` seeds the database automatically from `client/api/_lib/fixture.json` if it's empty (see that file).
+1. **Import the repo in Vercel**: New Project → import `Dixit1010/playpower` (must be a private repo — see the assignment's instructions).
+2. **Set Root Directory to `client`** in the project's settings — this is what makes Vercel pick up both the Vite static build and the `client/api/` serverless function together.
+3. **Deploy.** Framework preset should auto-detect as Vite; build command/output are already pinned in [client/vercel.json](client/vercel.json). Nothing else is required.
+
+To switch on a real database later: create a free-tier cluster at mongodb.com/atlas, allow network access from `0.0.0.0/0` (Vercel functions have no fixed IP), copy the `mongodb+srv://...` connection string, and add it as `MONGO_URI` in Project Settings → Environment Variables, then redeploy. The first request after that seeds the database automatically from `client/api/_lib/fixture.json`.
 
 ## Submission notes
 
