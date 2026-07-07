@@ -1,0 +1,15 @@
+@import '@fontsource-variable/inter';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  color: theme('colors.ink.soft');
+}
+
+*:focus-visible {
+  outline: 2px solid theme('colors.rausch.DEFAULT');
+  outline-offset: 2px;
+}

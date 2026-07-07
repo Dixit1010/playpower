@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Architecture — Production-Scale Vacation Rental Marketplace</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px;
+    background: #ffffff;
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: #222;
+    width: 1360px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 28px; color: #666; font-size: 13px; }
+
+  .layer {
+    margin-bottom: 22px;
+  }
+  .layer-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin-bottom: 8px;
+  }
+  .row {
+    display: flex;
+    gap: 14px;
+  }
+  .box {
+    flex: 1;
+    border: 1.5px solid #d0d0d0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fafafa;
+  }
+  .box h3 {
+    margin: 0 0 4px;
+    font-size: 13.5px;
+  }
+  .box p {
+    margin: 0;
+    font-size: 11.5px;
+    color: #666;
+    line-height: 1.4;
+  }
+  .box.accent { border-color: #ff385c; background: #fff5f7; }
+  .box.dark { background: #222; border-color: #222; }
+  .box.dark h3, .box.dark p { color: #eee; }
+
+  .arrow-down {
+    text-align: center;
+    color: #bbb;
+    font-size: 18px;
+    margin: 4px 0;
+  }
+
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+</style>
+</head>
+<body>
+  <h1>Production-Scale Vacation Rental Marketplace — Architecture</h1>
+  <p class="sub">High-level scaling strategy for frontend, backend, storage, search, and deployment (this take-home's implementation is deliberately a thin slice of this: single listing page, one read endpoint, no auth/search/booking).</p>
+
+  <div class="layer">
+    <div class="layer-label">Client</div>
+    <div class="row">
+      <div class="box accent"><h3>Web (React/Next.js SSR)</h3><p>SSR + ISR for listing pages (SEO, fast first paint). Client-side nav for search/booking flows.</p></div>
+      <div class="box accent"><h3>Mobile apps (iOS/Android)</h3><p>Native apps hitting the same public API surface.</p></div>
+      <div class="box"><h3>CDN / Edge</h3><p>CloudFront / Vercel Edge — static assets, cached SSR pages, image delivery, TLS termination.</p></div>
+    </div>
+  </div>
+
+  <div class="arrow-down">&#8595;</div>
+
+  <div class="layer">
+    <div class="layer-label">API Gateway</div>
+    <div class="row">
+      <div class="box"><h3>API Gateway / BFF</h3><p>AuthN/Z, rate limiting, request routing to domain services, response shaping per client (web/mobile).</p></div>
+    </div>
+  </div>
+
+  <div class="arrow-down">&#8595;</div>
+
+  <div class="layer">
+    <div class="layer-label">Domain services (stateless, horizontally autoscaled)</div>
+    <div class="three-col">
+      <div class="box"><h3>Listings Service</h3><p>CRUD for listing content, photos, amenities. Owns the listing read/write path this take-home's API is a stand-in for.</p></div>
+      <div class="box"><h3>Search Service</h3><p>Query parsing, ranking, geo/date/price filters. Reads from the search index, never the primary DB directly.</p></div>
+      <div class="box"><h3>Booking Service</h3><p>Availability, pricing, reservations. Strong consistency requirements — owns booking transactions.</p></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div class="box"><h3>Media Service</h3><p>Upload handling, async image processing/optimization pipeline.</p></div>
+      <div class="box"><h3>Reviews Service</h3><p>Review submission, rating aggregation, moderation.</p></div>
+      <div class="box"><h3>Notifications Service</h3><p>Email/SMS/push, driven off the event bus, not called synchronously by other services.</p></div>
+    </div>
+  </div>
+
+  <div class="arrow-down">&#8595;</div>
+
+  <div class="layer">
+    <div class="layer-label">Data, search &amp; async infrastructure</div>
+    <div class="two-col">
+      <div class="box dark"><h3>Primary datastore</h3><p>Postgres (transactional: bookings, users, payments) with read replicas. MongoDB acceptable for listing content, which is document-shaped and read-heavy.</p></div>
+      <div class="box dark"><h3>Cache</h3><p>Redis — session storage, hot listing reads, rate-limit counters.</p></div>
+      <div class="box dark"><h3>Search index</h3><p>OpenSearch/Elasticsearch cluster, kept in sync via CDC (Debezium-style) off the primary DB — search never queries Postgres/Mongo live.</p></div>
+      <div class="box dark"><h3>Object storage + CDN</h3><p>S3 for listing photos, fronted by CDN. Uploads trigger an async resize/optimize pipeline.</p></div>
+      <div class="box dark"><h3>Event bus / queue</h3><p>Kafka/SQS — booking confirmations, search-index updates, notification triggers. Decouples services from synchronous calls.</p></div>
+      <div class="box dark"><h3>Observability</h3><p>Centralized logs, metrics, distributed tracing, alerting across every service above.</p></div>
+    </div>
+  </div>
+
+  <div class="arrow-down">&#8595;</div>
+
+  <div class="layer">
+    <div class="layer-label">Deployment</div>
+    <div class="row">
+      <div class="box"><h3>Containers on Kubernetes / ECS</h3><p>Each domain service its own deployable unit, independently scaled, across multiple availability zones.</p></div>
+      <div class="box"><h3>CI/CD</h3><p>Automated test → build → canary/blue-green rollout per service.</p></div>
+      <div class="box"><h3>Infra as code</h3><p>Terraform-managed environments (staging/prod), reproducible and reviewable.</p></div>
+    </div>
+  </div>
+</body>
+</html>

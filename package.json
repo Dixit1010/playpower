@@ -1,0 +1,17 @@
+{
+  "name": "airbnb-listing-clone",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pixel/behavior clone of an Airbnb listing page (MERN)",
+  "scripts": {
+    "dev": "concurrently -n client,server -c blue,green \"npm:dev --prefix client\" \"npm:dev --prefix server\"",
+    "dev:local": "concurrently -n client,server -c blue,green \"npm:dev --prefix client\" \"npm:dev:local --prefix server\"",
+    "install:all": "npm install && npm install --prefix client && npm install --prefix server",
+    "build": "npm run build --prefix client && npm run build --prefix server",
+    "seed": "npm run seed --prefix server"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}
