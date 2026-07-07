@@ -85,7 +85,7 @@ export interface Listing {
   photos: Photo[]
 }
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
+const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export async function getListing(): Promise<Listing> {
   const res = await fetch(`${API_URL}/api/listing`)

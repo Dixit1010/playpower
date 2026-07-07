@@ -7,8 +7,10 @@ See [CLAUDE.md](CLAUDE.md) for stack/structure/conventions and [docs/PLAN_AND_PR
 ## Stack
 
 - **Client**: React 19 + Vite + TypeScript, React Router, Tailwind CSS, Framer Motion, Radix UI (`Dialog`)
-- **Server**: Node.js + Express + TypeScript, Mongoose
-- **Database**: MongoDB (Atlas free tier)
+- **API**: two implementations of the same single `GET /api/listing` endpoint —
+  - `client/api/listing.ts` — a Vercel serverless function (native `mongodb` driver), used in production and auto-seeds the database from `client/api/_lib/fixture.json` on first read
+  - `server/` — a standalone Express + Mongoose app, used only for local development (see `npm run dev:local` below)
+- **Database**: MongoDB (Atlas free tier) — Vercel has no MongoDB hosting of its own, so this is the one piece that lives outside Vercel
 
 ## Prerequisites
 
@@ -47,11 +49,7 @@ cp client/.env.example client/.env
 | `MONGO_URI` | MongoDB connection string. The server refuses to start without it (see [server/src/db.ts](server/src/db.ts)) rather than silently falling back to a default. |
 | `PORT`      | Port the Express server listens on. Defaults to `4000`.                |
 
-**`client/.env`**
-
-| Variable       | Description                                                        |
-| -------------- | -------------------------------------------------------------------- |
-| `VITE_API_URL` | Base URL of the API. Defaults to `http://localhost:4000` if unset. |
+**`client/.env`** — not needed in normal use. `/api` calls are same-origin: proxied to `localhost:4000` in dev (see `client/vite.config.ts`), served by the native Vercel function in production. Only set `VITE_API_URL` to override the proxy target.
 
 ### Seed the database
 
@@ -88,6 +86,10 @@ Builds `client` (type-checks then `vite build`, output in `client/dist`) and `se
 
 ```
 /client
+  api/listing.ts               Vercel serverless function — production API, auto-seeds on first read
+  api/_lib/mongo.ts             cached MongoClient connection (serverless-safe)
+  api/_lib/fixture.json         seed data (same content as server/src/seed/fixture.json)
+  vercel.json                  build config + SPA rewrite (excludes /api)
   src/pages/ListingPage.tsx
   src/components/listing/     Header, PhotoGrid, TitleBlock, BadgeRow, HostRow, Highlights, Description,
                               SleepingArrangements, Amenities, BookingWidget, DatesCalendar, RatingSummary,
@@ -115,13 +117,17 @@ Builds `client` (type-checks then `vite build`, output in `client/dist`) and `se
 
 The reference site sits behind bot-protection and rate-limits scripted requests — it is never scraped or fetched by automated tooling. Fidelity checks instead compare local dev screenshots (`localhost:5173`, via Playwright) against screenshots captured manually from the reference and stored in `docs/reference-screenshots/`. See the `pixel-fidelity-reviewer` and `accessibility-auditor` subagents under `.claude/agents/`, and the `fidelity-check` skill under `.claude/skills/`, for how each section/overlay is checked before moving to the next.
 
-## Deployment
+## Deployment — everything on Vercel
 
-- **Client** → Vercel (static build). Config in [client/vercel.json](client/vercel.json). Set `VITE_API_URL` in the Vercel project to the deployed server's URL.
-- **Server** → Render free tier. Config in [render.yaml](render.yaml) (Render "Blueprint" — point Render at this repo and it reads it). Set `MONGO_URI` in the Render dashboard (not committed).
-- **Database** → MongoDB Atlas free tier.
+One Vercel project serves both the static frontend and the API (as a serverless function) from the same domain — no separate backend host.
 
-None of this has been deployed yet — the configs are ready to go, but creating the Vercel/Render/Atlas accounts and pointing them at a repo is an action with its own credentials, so it's left for whoever owns those accounts to run.
+1. **MongoDB Atlas** (the one piece Vercel can't host): create a free-tier cluster at mongodb.com/atlas, create a database user, and copy the connection string (`mongodb+srv://...`). Network access: allow `0.0.0.0/0` (Vercel functions have no fixed IP) — Atlas's free tier makes this the standard setup, not a security downgrade for this project.
+2. **Import the repo in Vercel**: New Project → import `Dixit1010/playpower` (must be a private repo — see the assignment's instructions).
+3. **Set Root Directory to `client`** in the project's settings — this is what makes Vercel pick up both the Vite static build and the `client/api/` serverless function together.
+4. **Environment variable**: add `MONGO_URI` (the Atlas connection string from step 1) in Project Settings → Environment Variables.
+5. **Deploy.** Framework preset should auto-detect as Vite; build command/output are already pinned in [client/vercel.json](client/vercel.json).
+
+No manual seed step needed — the first request to `/api/listing` seeds the database automatically from `client/api/_lib/fixture.json` if it's empty (see that file).
 
 ## Submission notes
 
