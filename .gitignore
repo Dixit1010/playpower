@@ -4,3 +4,4 @@ dist
 *.log
 .playwright-mcp
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
